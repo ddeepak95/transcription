@@ -14,6 +14,7 @@ from transcription.pipeline import TranscriptionPipeline
 from transcription.transcript_formatter import (
     build_transcript_file_content,
     default_transcript_output_path,
+    write_transcript_docx,
 )
 
 
@@ -149,7 +150,18 @@ def run_format_only(args: argparse.Namespace) -> int:
         fallback_transcript=fallback_transcript,
     )
     output_path.write_text(output_text, encoding="utf-8")
-    logging.getLogger("transcription").info("Formatted transcript written to: %s", output_path)
+    docx_output_path = output_path.with_suffix(".docx")
+    write_transcript_docx(
+        output_path=docx_output_path,
+        audio_name=audio_name,
+        full_response=full_response if isinstance(full_response, dict) else {},
+        fallback_transcript=fallback_transcript,
+    )
+    logging.getLogger("transcription").info(
+        "Formatted transcript written to: %s and %s",
+        output_path,
+        docx_output_path,
+    )
     return 0
 
 

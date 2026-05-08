@@ -12,7 +12,7 @@ from typing import Any
 from transcription.config import SUPPORTED_INPUT_EXTENSIONS
 from transcription.io_utils import move_file, unique_output_dir
 from transcription.providers.base import BatchSubmission, TranscriptionProvider, TranscriptionResult
-from transcription.transcript_formatter import build_transcript_file_content
+from transcription.transcript_formatter import build_transcript_file_content, write_transcript_docx
 
 logger = logging.getLogger(__name__)
 
@@ -145,6 +145,13 @@ class TranscriptionPipeline:
                 fallback_transcript=result.transcript,
             ),
             encoding="utf-8",
+        )
+        transcript_docx_path = output_dir / f"{item.source_path.stem}_transcript.docx"
+        write_transcript_docx(
+            output_path=transcript_docx_path,
+            audio_name=item.source_path.name,
+            full_response=result.full_response,
+            fallback_transcript=result.transcript,
         )
 
         result_payload: dict[str, Any] = {

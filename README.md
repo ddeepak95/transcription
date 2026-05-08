@@ -57,7 +57,7 @@ Set fixed speaker count for diarization:
 python main.py --num-speakers 2
 ```
 
-Format JSON to transcript text only (no transcription run):
+Format JSON to transcript files only (no transcription run):
 
 ```bash
 python main.py --format-json "data/processed/HuliNayak/0.json"
@@ -87,7 +87,8 @@ In `wait` mode, each processed input is moved to its own folder:
 data/processed/
   sample_audio/
     sample_audio.mp3
-    transcript.txt
+    sample_audio_transcript.txt
+    sample_audio_transcript.docx
     result.json
     0.json
   _jobs/
@@ -96,4 +97,4 @@ data/processed/
 
 `result.json` includes transcript metadata, file-level provider response, and full resolved batch output JSON (`full_response`). The raw downloaded output file (for example `0.json`) is also saved in the same processed audio folder. For `.mp4` sources, conversion metadata is also included.
 
-Transcript text output is diarized when diarization entries are available, with speaker labels and timestamps.
+Transcript output is diarized when diarization entries are available, with speaker labels and timestamps. The pipeline writes both `.txt` and `.docx` transcript files.

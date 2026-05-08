@@ -3,6 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from docx import Document
+
 
 def format_seconds(seconds: float | int | None) -> str:
     if seconds is None:
@@ -47,3 +49,28 @@ def build_transcript_file_content(audio_name: str, full_response: dict[str, Any]
 def default_transcript_output_path(input_json_path: Path, audio_name: str | None = None) -> Path:
     base_name = audio_name if audio_name else input_json_path.stem
     return input_json_path.with_name(f"{base_name}_transcript.txt")
+
+
+def default_transcript_docx_output_path(input_json_path: Path, audio_name: str | None = None) -> Path:
+    return default_transcript_output_path(input_json_path, audio_name=audio_name).with_suffix(".docx")
+
+
+def write_transcript_docx(
+    output_path: Path,
+    audio_name: str,
+    full_response: dict[str, Any],
+    fallback_transcript: str = "",
+) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    document = Document()
+    document.add_paragraph(f"Audio: {audio_name}")
+    document.add_paragraph("")
+
+    transcript_body = build_transcript_text(full_response, fallback_transcript=fallback_transcript)
+    if transcript_body:
+        for line in transcript_body.splitlines():
+            document.add_paragraph(line)
+    else:
+        document.add_paragraph("")
+
+    document.save(str(output_path))
