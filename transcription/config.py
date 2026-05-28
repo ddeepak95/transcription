@@ -4,7 +4,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
-SUPPORTED_INPUT_EXTENSIONS = {".wav", ".mp3", ".aac", ".flac", ".ogg", ".mp4"}
+SUPPORTED_INPUT_EXTENSIONS = {".wav", ".mp3", ".aac", ".flac", ".ogg", ".mp4", ".m4a"}
+
+FFMPEG_CONVERT_EXTENSIONS = {".mp4", ".m4a"}
 
 
 @dataclass(slots=True)

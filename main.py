@@ -99,6 +99,18 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Audio name to display in transcript header for --format-json mode.",
     )
+    parser.add_argument(
+        "--download-job",
+        metavar="JOB_ID",
+        default=None,
+        help="Wait for a submitted batch job, download results, and write outputs. "
+        "JOB_ID is the Sarvam job id or a path to data/processed/_jobs/<job_id>.json.",
+    )
+    parser.add_argument(
+        "--list-jobs",
+        action="store_true",
+        help="List submitted batch jobs from data/processed/_jobs and exit.",
+    )
     return parser.parse_args()
 
 
@@ -130,6 +142,58 @@ def collect_inputs(config: AppConfig) -> list[Path]:
         return [config.one_file]
 
     return find_source_files(config.source_dir, SUPPORTED_INPUT_EXTENSIONS)
+
+
+def run_list_jobs(args: argparse.Namespace) -> int:
+    records = TranscriptionPipeline.list_job_records(args.processed)
+    logger = logging.getLogger("transcription")
+    if not records:
+        logger.info("No batch jobs found in: %s", args.processed / "_jobs")
+        return 0
+
+    for record in records:
+        job_id = record.get("job_id", "unknown")
+        status = record.get("status", "unknown")
+        source_files = record.get("source_files") or [
+            item.get("source_file") for item in record.get("items", []) if isinstance(item, dict)
+        ]
+        source_summary = ", ".join(Path(path).name for path in source_files[:3])
+        if len(source_files) > 3:
+            source_summary += f", +{len(source_files) - 3} more"
+        logger.info("job_id=%s status=%s files=[%s]", job_id, status, source_summary)
+        if status == "downloaded":
+            output_dirs = record.get("output_dirs", [])
+            if output_dirs:
+                logger.info("  output: %s", ", ".join(output_dirs))
+    return 0
+
+
+def run_download_job(args: argparse.Namespace) -> int:
+    api_key = os.getenv("SARVAM_API_KEY")
+    if not api_key:
+        raise RuntimeError("Missing SARVAM_API_KEY environment variable.")
+
+    from transcription.providers.sarvam import SarvamTranscriptionProvider
+
+    logger = logging.getLogger("transcription")
+    provider = SarvamTranscriptionProvider(
+        api_key=api_key,
+        model=args.model,
+        mode=args.mode,
+        job_poll_interval_seconds=args.job_poll_interval,
+    )
+    pipeline = TranscriptionPipeline(
+        provider=provider,
+        processed_dir=args.processed,
+    )
+    summary = pipeline.download_job(args.download_job)
+    logger.info(
+        "Download complete. processed=%s failed=%s skipped=%s",
+        summary.processed,
+        summary.failed,
+        summary.skipped,
+    )
+    return 1 if summary.failed else 0
 
 
 def run_format_only(args: argparse.Namespace) -> int:
@@ -183,6 +247,10 @@ def main() -> int:
     logger = logging.getLogger("transcription")
     if args.format_json is not None:
         return run_format_only(args)
+    if args.list_jobs:
+        return run_list_jobs(args)
+    if args.download_job is not None:
+        return run_download_job(args)
 
     config = build_config(args)
 
